@@ -35,9 +35,16 @@ commitMessages:
   commitPrefixStatusDown: "❌"
 
 i18n:
-  activeIncidents: Active incidents
-  noActiveIncidents: All systems operational
-  pastIncidents: Past incidents
+  activeIncidents: Active Incidents
+  allSystemsOperational: All systems are operational
+  pastIncidents: Past Incidents
   wasDown: had downtime
-  overallUptime: Overall uptime
-  overallUptimePercentage: "% uptime"
+  overallUptime: "Overall uptime: $UPTIME"
+  overallUptimeTitle: Overall uptime
+  averageResponseTime: "Average response time: $TIMEms"
+  averageResponseTimeTitle: Average response
+  up: Up
+  down: Down
+  degraded: Degraded
+  liveStatus: Live Status
+  locale: en-US
