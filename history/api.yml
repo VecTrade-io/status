@@ -1,5 +1,5 @@
 url: https://api.vectrade.io/health
-status: up
+status: degraded
 code: 200
 responseTime: 411
 lastUpdated: 2026-05-18T13:45:26.515Z
