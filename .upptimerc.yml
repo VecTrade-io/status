@@ -9,10 +9,7 @@ sites:
   - name: Documentation
     url: https://docs.vectrade.io
   - name: API
-    url: https://api.vectrade.io/v1/health
-    expectedStatusCodes:
-      - 200
-      - 404
+    url: https://api.vectrade.io/health
 
 status-website:
   cname: status.vectrade.io
