@@ -16,7 +16,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: upptime/status-page@v1.5.1
+      - uses: upptime/status-page@v1.17.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-pages-artifact@v3

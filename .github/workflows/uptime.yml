@@ -15,6 +15,6 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: upptime/uptime-monitor@v1.39.1
+      - uses: upptime/uptime-monitor@v1.41.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
