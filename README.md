@@ -4,12 +4,12 @@ This repository uses [Upptime](https://upptime.js.org) to monitor VecTrade servi
 
 ## Monitored Services
 
-| Service | URL |
-|---------|-----|
-| VecTrade | https://vectrade.io |
-| VecTrade UAT | https://uat.vectrade.io |
+| Service       | URL                      |
+| ------------- | ------------------------ |
+| VecTrade      | https://vectrade.io      |
+| VecTrade UAT  | https://uat.vectrade.io  |
 | Documentation | https://docs.vectrade.io |
-| API | https://api.vectrade.io |
+| API           | https://api.vectrade.io  |
 
 ## How it works
 
