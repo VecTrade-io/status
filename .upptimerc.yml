@@ -4,8 +4,6 @@ repo: status
 sites:
   - name: VecTrade
     url: https://vectrade.io
-  - name: VecTrade UAT
-    url: https://uat.vectrade.io
   - name: Documentation
     url: https://docs.vectrade.io
   - name: API
