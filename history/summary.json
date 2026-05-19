@@ -2,7 +2,7 @@
   {
     "name": "VecTrade",
     "url": "https://vectrade.io",
-    "icon": "https://icons.duckduckgo.com/ip3/vectrade.io.ico",
+    "icon": "https://docs.vectrade.io/logo/light.svg",
     "slug": "vec-trade",
     "status": "down",
     "uptime": "100.00%",
@@ -15,6 +15,24 @@
     "timeWeek": 602,
     "timeMonth": 602,
     "timeYear": 602,
+    "dailyMinutesDown": {}
+  },
+  {
+    "name": "VecTrade UAT",
+    "url": "https://uat.vectrade.io",
+    "icon": "https://docs.vectrade.io/logo/light.svg",
+    "slug": "vec-trade-uat",
+    "status": "down",
+    "uptime": "100.00%",
+    "uptimeDay": "100.00%",
+    "uptimeWeek": "100.00%",
+    "uptimeMonth": "100.00%",
+    "uptimeYear": "100.00%",
+    "time": 679,
+    "timeDay": 679,
+    "timeWeek": 679,
+    "timeMonth": 679,
+    "timeYear": 679,
     "dailyMinutesDown": {}
   },
   {
@@ -52,5 +70,25 @@
     "timeMonth": 552,
     "timeYear": 552,
     "dailyMinutesDown": {}
+  },
+  {
+    "name": "Trading API",
+    "url": "https://api.vectrade.io/trade/v1/health",
+    "icon": "https://icons.duckduckgo.com/ip3/api.vectrade.io.ico",
+    "slug": "trading-api",
+    "status": "down",
+    "uptime": "72.36%",
+    "uptimeDay": "72.36%",
+    "uptimeWeek": "72.36%",
+    "uptimeMonth": "72.36%",
+    "uptimeYear": "72.36%",
+    "time": 185,
+    "timeDay": 185,
+    "timeWeek": 185,
+    "timeMonth": 185,
+    "timeYear": 185,
+    "dailyMinutesDown": {
+      "2026-05-19": 0
+    }
   }
 ]
