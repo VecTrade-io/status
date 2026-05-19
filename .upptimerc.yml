@@ -4,23 +4,74 @@ repo: status
 sites:
   - name: VecTrade
     url: https://vectrade.io
+    icon: https://docs.vectrade.io/logo/light.svg
+  - name: VecTrade UAT
+    url: https://uat.vectrade.io
+    icon: https://docs.vectrade.io/logo/light.svg
   - name: Documentation
     url: https://docs.vectrade.io
   - name: API
     url: https://api.vectrade.io/health
+  - name: Trading API
+    url: https://api.vectrade.io/trade/v1/health
 
 status-website:
   cname: status.vectrade.io
   logoUrl: https://docs.vectrade.io/logo/light.svg
+  favicon: https://docs.vectrade.io/logo/light.svg
   name: VecTrade Status
-  theme: light
-  nav:
-    - title: Home
-      url: https://vectrade.io
+  theme: dark
+  introTitle: "**VecTrade** System Status"
+  introMessage: "Real-time availability and performance monitoring for all VecTrade services. Visit [vectrade.io](https://vectrade.io) to get started."
+  navbar:
+    - title: Status
+      href: /
+    - title: VecTrade
+      href: https://vectrade.io
     - title: Docs
-      url: https://docs.vectrade.io
+      href: https://docs.vectrade.io
     - title: GitHub
-      url: https://github.com/VecTrade-io
+      href: https://github.com/VecTrade-io
+  css: |
+    :root {
+      --body-background-color: #0d1117;
+      --body-text-color: #e6edf3;
+      --card-background-color: #161b22;
+      --card-border-color: #30363d;
+      --nav-background-color: #161b22;
+      --nav-border-bottom-color: #30363d;
+      --link-color: #58a6ff;
+      --tag-background-color: #1f6feb33;
+      --tag-text-color: #58a6ff;
+      --success-color: #3fb950;
+      --danger-color: #f85149;
+      --warning-color: #d29922;
+    }
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .site-status {
+      border: 1px solid var(--card-border-color);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 0.75rem;
+      background: var(--card-background-color);
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .site-status:hover {
+      border-color: #58a6ff;
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.08);
+    }
+    .all-ok {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
 
 workflowSchedule:
   uptime: "*/5 * * * *"
@@ -30,9 +81,9 @@ workflowSchedule:
 
 commitMessages:
   statusChange: "$EMOJI $SITE_NAME is $STATUS ($RESPONSE_CODE in $RESPONSE_TIME ms)"
-  commitPrefixStatus: "🔄"
-  commitPrefixStatusUp: "✅"
-  commitPrefixStatusDown: "❌"
+  commitPrefixStatus: "U+1F504"
+  commitPrefixStatusUp: "U+2705"
+  commitPrefixStatusDown: "U+274C"
 
 i18n:
   activeIncidents: Active Incidents
