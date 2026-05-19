@@ -10,10 +10,8 @@ sites:
     icon: https://docs.vectrade.io/logo/light.svg
   - name: Documentation
     url: https://docs.vectrade.io
-  - name: API
-    url: https://api.vectrade.io/health
   - name: Trading API
-    url: https://api.vectrade.io/trade/v1/health
+    url: https://api.vectrade.io/health
 
 status-website:
   cname: status.vectrade.io
