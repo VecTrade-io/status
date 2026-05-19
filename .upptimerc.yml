@@ -49,6 +49,32 @@ status-website:
       max-width: 900px;
       margin: 0 auto;
     }
+    /* Make status badges (Up/Down) prominent on main page */
+    .tag.is-success {
+      background-color: #238636 !important;
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.35em 0.75em;
+      border-radius: 20px;
+    }
+    .tag.is-danger {
+      background-color: #da3633 !important;
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.35em 0.75em;
+      border-radius: 20px;
+    }
+    .tag.is-warning {
+      background-color: #9e6a03 !important;
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.35em 0.75em;
+      border-radius: 20px;
+    }
+    /* Card-like site entries */
     .site-status {
       border: 1px solid var(--card-border-color);
       border-radius: 12px;
@@ -61,14 +87,23 @@ status-website:
       border-color: #58a6ff;
       box-shadow: 0 4px 12px rgba(88, 166, 255, 0.08);
     }
-    .all-ok {
-      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
-      border-radius: 12px;
-      padding: 1.5rem;
+    /* All systems operational banner */
+    .all-ok, .notification.is-success {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%) !important;
+      border-radius: 12px !important;
+      padding: 1.5rem !important;
       text-align: center;
       font-size: 1.1rem;
       font-weight: 600;
+      color: #fff !important;
+      border: none !important;
       margin-bottom: 2rem;
+    }
+    /* Ensure status text is visible */
+    .site-status .status {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 0.5rem;
     }
 
 workflowSchedule:
@@ -92,7 +127,7 @@ i18n:
   overallUptimeTitle: Overall uptime
   averageResponseTime: "Average response time: $TIMEms"
   averageResponseTimeTitle: Average response
-  up: Up
+  up: Operational
   down: Down
   degraded: Degraded
   liveStatus: Live Status
