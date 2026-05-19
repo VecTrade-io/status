@@ -19,8 +19,6 @@ status-website:
   favicon: https://docs.vectrade.io/logo/light.svg
   name: VecTrade Status
   theme: dark
-  introTitle: "**VecTrade** System Status"
-  introMessage: "Real-time availability and performance monitoring for all VecTrade services. Visit [vectrade.io](https://vectrade.io) to get started."
   navbar:
     - title: Status
       href: /
@@ -30,6 +28,70 @@ status-website:
       href: https://docs.vectrade.io
     - title: GitHub
       href: https://github.com/VecTrade-io
+  js: |
+    // Make logo link to vectrade.io instead of status page root
+    document.addEventListener('DOMContentLoaded', function() {
+      var logo = document.querySelector('nav a[href="/"]');
+      if (logo && logo.querySelector('img')) {
+        logo.href = 'https://vectrade.io';
+      }
+    });
+  customFootHtml: |
+    <style>
+      .vt-footer { background: #0d1117; border-top: 1px solid #30363d; padding: 3rem 1.5rem 2rem; margin-top: 4rem; }
+      .vt-footer-inner { max-width: 900px; margin: 0 auto; }
+      .vt-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+      @media (max-width: 768px) { .vt-footer-grid { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 480px) { .vt-footer-grid { grid-template-columns: 1fr; } }
+      .vt-footer-brand p { color: #8b949e; font-size: 0.875rem; line-height: 1.6; margin-top: 0.75rem; }
+      .vt-footer-col h4 { color: #e6edf3; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+      .vt-footer-col a { display: block; color: #8b949e; font-size: 0.875rem; text-decoration: none; padding: 0.25rem 0; transition: color 0.15s; }
+      .vt-footer-col a:hover { color: #58a6ff; }
+      .vt-footer-bottom { border-top: 1px solid #30363d; padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+      .vt-footer-bottom p { color: #8b949e; font-size: 0.8rem; margin: 0; }
+      .vt-footer-bottom-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+      .vt-footer-bottom-links a { color: #8b949e; font-size: 0.8rem; text-decoration: none; }
+      .vt-footer-bottom-links a:hover { color: #58a6ff; }
+      .vt-footer-logo { height: 24px; opacity: 0.8; }
+    </style>
+    <footer class="vt-footer">
+      <div class="vt-footer-inner">
+        <div class="vt-footer-grid">
+          <div class="vt-footer-brand">
+            <img src="https://docs.vectrade.io/logo/light.svg" alt="VecTrade" class="vt-footer-logo" />
+            <p>Your intelligent market analysis and virtual trading platform.</p>
+          </div>
+          <div class="vt-footer-col">
+            <h4>General</h4>
+            <a href="https://vectrade.io/register">Sign Up</a>
+            <a href="https://vectrade.io/about">About</a>
+            <a href="https://vectrade.io/blog">Blog</a>
+            <a href="https://docs.vectrade.io">Docs</a>
+          </div>
+          <div class="vt-footer-col">
+            <h4>Platform</h4>
+            <a href="https://vectrade.io/vtrade">VTrade</a>
+            <a href="https://vectrade.io/leaderboard">Leaderboard</a>
+            <a href="https://vectrade.io/stocks">Markets</a>
+            <a href="https://vectrade.io/people">People</a>
+          </div>
+          <div class="vt-footer-col">
+            <h4>Developers</h4>
+            <a href="https://docs.vectrade.io">API Docs</a>
+            <a href="https://github.com/VecTrade-io">GitHub</a>
+            <a href="https://status.vectrade.io">Status</a>
+          </div>
+        </div>
+        <div class="vt-footer-bottom">
+          <p>&copy; 2026 VecTrade. All rights reserved.</p>
+          <div class="vt-footer-bottom-links">
+            <a href="https://vectrade.io/privacy-policy">Privacy Policy</a>
+            <a href="https://vectrade.io/terms-of-service">Terms of Service</a>
+            <a href="https://vectrade.io/cookie-policy">Cookie Policy</a>
+          </div>
+        </div>
+      </div>
+    </footer>
   css: |
     :root {
       --body-background-color: #0d1117;
@@ -49,7 +111,7 @@ status-website:
       max-width: 900px;
       margin: 0 auto;
     }
-    /* Make status badges (Up/Down) prominent on main page */
+    /* Prominent status badges */
     .tag.is-success {
       background-color: #238636 !important;
       color: #fff !important;
@@ -99,11 +161,9 @@ status-website:
       border: none !important;
       margin-bottom: 2rem;
     }
-    /* Ensure status text is visible */
-    .site-status .status {
-      display: inline-flex !important;
-      align-items: center;
-      gap: 0.5rem;
+    /* Hide default Upptime footer */
+    footer:not(.vt-footer) {
+      display: none !important;
     }
 
 workflowSchedule:
