@@ -1,0 +1,11 @@
+# ─── CODEOWNERS ─────────────────────────────────────────────────────────────
+# Maps file patterns to owners/agents responsible for review.
+
+# ── Default (vt-ops) ─────────────────────────────────────────────────────────
+*                           @mountek
+
+# ── Monitor config ───────────────────────────────────────────────────────────
+.upptimerc.yml              @mountek
+
+# ── CI ───────────────────────────────────────────────────────────────────────
+.github/workflows/          @mountek
