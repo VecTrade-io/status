@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, fix/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml pytest requests
+
+      - name: Validate .upptimerc.yml syntax
+        run: python -c "import yaml; yaml.safe_load(open('.upptimerc.yml'))"
+
+      - name: Run validation tests
+        run: python -m pytest tests/ -v --tb=short
+
+  live-checks:
+    name: Live Endpoint Checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml pytest requests
+
+      - name: Run live endpoint checks
+        run: python -m pytest tests/test_live.py -v --tb=short
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          if grep -rn 'vq_live_[a-zA-Z0-9]\{10,\}' --include="*.yml" --include="*.yaml" .; then
+            echo "ERROR: Found hardcoded live API keys!"
+            exit 1
+          fi
+          echo "No hardcoded secrets found"
