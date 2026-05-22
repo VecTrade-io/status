@@ -46,6 +46,198 @@ sites:
       - 200
 ```
 
+## Deployments & Maintenance Mode
+
+Deploys are handled by `vectrade-core/deploy/deploy.sh`. It uses a **two-phase strategy** to minimize downtime:
+
+| Phase | Duration | User Impact |
+|-------|----------|-------------|
+| Phase 1 (pre-build) | ~4 min | None (services still serving) |
+| Phase 2 (swap) | ~30s | Downtime — CF maintenance page shown |
+
+### Automated Maintenance (deploy.sh) ✅ ACTIVE
+
+The deploy script auto-toggles Cloudflare maintenance mode. Env vars are configured on the server in `/opt/finance/env/.env.uat` and `.env.prod`:
+
+```bash
+CF_API_TOKEN=cfut_QXCg...YBZ4b518fb6   # Workers KV Storage: Edit permission
+CF_ACCOUNT_ID=a2744e24e619da1f53002161ee74905c
+CF_MAINTENANCE_KV_ID=0301bea899144e7182a0457196e24da5
+```
+
+The deploy script automatically:
+1. Shows "pending" banner → 15s warning to active users
+2. Switches to "on" (branded 503 page) at Phase 2 start
+3. Switches to "off" when all services are healthy
+
+### Manual Maintenance Toggle
+
+If env vars aren't set (or for ad-hoc maintenance), toggle manually:
+
+```bash
+# From local machine (requires wrangler auth)
+cd vectrade-core/deploy/maintenance
+
+# Enable
+wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode" "on"
+
+# Disable
+wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode" "off"
+
+# Or via REST API (from anywhere with a CF token)
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/a2744e24e619da1f53002161ee74905c/storage/kv/namespaces/0301bea899144e7182a0457196e24da5/values/mode" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: text/plain" \
+  --data "on"   # or "off" or "pending"
+```
+
+### Maintenance Mode States
+
+| KV Value | Behaviour |
+|----------|-----------|
+| `off` (or missing) | Pass-through — normal operation |
+| `pending` | Injects warning banner into HTML pages (services still live) |
+| `on` | Returns branded 503 page for all non-health routes |
+
+### Running a Deploy
+
+Deploys are **fully automated** including maintenance mode. Just run:
+
+```bash
+# From local machine (gh auth provides the token)
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo -u finance DEPLOY_TOKEN=$(gh auth token) bash /opt/finance/app/deploy/deploy.sh <env> <sha> [--skip-backup]"
+```
+
+- **env**: `uat` or `prod`
+- **sha**: short git SHA from vectrade-core main branch
+- **--skip-backup**: skip DB backup (faster, for non-critical deploys)
+
+The script will automatically: show pending banner → wait 15s → enable maintenance page → stop/swap/start → disable maintenance page. No manual steps needed.
+
+### Measured Performance (UAT, ARM64 4-core)
+
+| Metric | Value |
+|--------|-------|
+| Phase 1 (pre-build) | ~216s |
+| Phase 2 (downtime) | ~30s |
+| Total | ~246s |
+| User-facing errors | 0 (CF worker intercepts all) |
+
+### Troubleshooting
+
+- **Deploy stuck at stop**: Services have `TimeoutStopSec=15` — if SIGTERM hangs, SIGKILL fires after 15s
+- **Maintenance page stuck on**: Manually set KV `mode` to `off` (see above)
+- **Health check failing**: Check service logs `journalctl -u finance-<svc>@<env> --no-pager -n 50`
+
+---
+
+## Auth Gateway Deployment
+
+The auth gateway (`vectrade-auth`) is **NOT** part of the main `deploy.sh` flow. It runs as a separate systemd service and is deployed manually.
+
+### Service Details
+
+| Property | Value |
+|----------|-------|
+| Service name | `vectrade-auth` |
+| Port | 8099 |
+| Source | `vectrade-core/deploy/auth-gateway/main.py` |
+| Production path | `/opt/finance/app/auth/main.py` |
+| Purpose | API key validation (forward_auth) + developer self-service endpoints |
+
+### Deploy Auth Gateway
+
+```bash
+# From local machine
+scp -i ~/.oci/vm_ssh_key \
+  /Users/everestkwok/Projects/vectrade/vectrade-core/deploy/auth-gateway/main.py \
+  ubuntu@145.241.243.140:/tmp/auth_main.py
+
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  'sudo cp /tmp/auth_main.py /opt/finance/app/auth/main.py && sudo systemctl restart vectrade-auth'
+```
+
+### Verify Auth Gateway
+
+```bash
+# Check service status
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 'systemctl is-active vectrade-auth'
+
+# Test forward-auth path
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  'curl -s -H "X-API-Key: <key>" http://127.0.0.1:8099/verify'
+
+# Test developer endpoints
+curl -s -H "X-API-Key: <key>" https://api.vectrade.io/v1/vq/developer/plan
+```
+
+### Caddy Integration
+
+Caddy routes developer endpoints and uses forward_auth for API key validation:
+
+```
+# Forward auth (all non-health routes)
+@protected not path /health /health/*
+forward_auth @protected 127.0.0.1:8099 {
+    uri /verify
+    copy_headers X-API-Key
+}
+
+# Developer endpoints → auth gateway directly
+handle /v1/vq/developer/* {
+    uri replace /v1/vq /api/v1
+    reverse_proxy 127.0.0.1:8099
+}
+```
+
+---
+
+## CI/CD Pipeline Summary
+
+### Fully Automated (CI → CD)
+
+| Workflow | Trigger | Target | Auto-deploy? |
+|----------|---------|--------|--------------|
+| `ci.yml` | PR/push to main/develop | — | Tests only |
+| `deploy-uat.yml` | CI passes on `develop` | UAT | ✅ Yes |
+| `deploy-prod.yml` | Manual `workflow_dispatch` | Production | ⚠️ Human-gated |
+| `db-backup.yml` | Cron 02:00 UTC daily | Production | ✅ Yes |
+| `secret-rotation-reminder.yml` | Quarterly | — | Creates issue |
+
+### NOT Automated (Manual Deploy)
+
+| Component | Why | How to Deploy |
+|-----------|-----|---------------|
+| Auth gateway (`vectrade-auth`) | Separate service, not in main app | SCP + systemctl restart |
+| Caddy config | Rarely changes | Edit `/etc/caddy/Caddyfile` + `caddy reload` |
+| DB schema (auth tables) | One-time setup | Manual SQL via psql |
+
+### Production Deploy Checklist
+
+1. Ensure CI passes on target SHA
+2. Go to GitHub Actions → "Deploy to Production" → Run workflow
+3. Enter the git SHA/tag → Run
+4. Workflow: verifies CI gate → SSH → `deploy.sh prod <sha>` → health check → auto-rollback on failure
+
+### Secrets Required (GitHub Environments)
+
+| Secret | Used by |
+|--------|---------|
+| `ORACLE_VM_IP` | All deploy workflows |
+| `ORACLE_SSH_KEY` | SSH access to VM |
+
+### Server Details
+
+| Property | Value |
+|----------|-------|
+| Host | `145.241.243.140` |
+| SSH Key | `~/.oci/vm_ssh_key` |
+| User | `ubuntu` (sudo) / `finance` (app owner) |
+| App dir | `/opt/finance/app` |
+| Env files | `/opt/finance/env/.env.{uat,prod}` |
+- **Worker not intercepting**: Verify routes in `deploy/maintenance/wrangler.toml` and worker is deployed
+
 ## Constraints
 
 - DO NOT manually edit files in `history/`, `api/`, or `graphs/` (auto-generated)
