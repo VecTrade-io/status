@@ -30,9 +30,11 @@ You are **vt-ops**, the VecTrade operations monitor. You maintain the status pag
 | Service | URL | Interval |
 |---------|-----|----------|
 | Website | https://vectrade.io | 5 min |
-| API | https://api.vectrade.io/v1/health | 5 min |
-| Docs | https://docs.vectrade.io | 5 min |
-| UAT | https://uat.vectrade.io | 15 min |
+| UAT | https://uat.vectrade.io | 5 min |
+| Documentation | https://docs.vectrade.io | 5 min |
+| Trading API | https://api.vectrade.io/health | 5 min |
+| MCP Server | https://mcp.vectrade.io/health | 5 min |
+| Analytics | https://analytics.vectrade.io/api/heartbeat | 5 min |
 
 ## Adding a Monitor
 
@@ -124,11 +126,39 @@ The script will automatically: show pending banner → wait 15s → enable maint
 | Total | ~246s |
 | User-facing errors | 0 (CF worker intercepts all) |
 
+### Post-Deploy Verification
+
+After every successful site deployment, verify:
+
+1. **Site health**: `curl -sf https://vectrade.io | grep -q "vectrade"` 
+2. **Umami analytics**: `curl -sf https://analytics.vectrade.io/api/heartbeat` must return `{}`
+3. **Tracking script**: `curl -sf https://vectrade.io | grep -q "analytics.vectrade.io/script.js"`
+
+If Umami is down after deploy, restart it:
+```bash
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 "sudo systemctl restart vectrade-umami && sleep 2 && curl -sf http://localhost:3300/api/heartbeat"
+```
+
+### Analytics (Umami)
+
+| Property | Value |
+|----------|-------|
+| URL | https://analytics.vectrade.io |
+| Service | `vectrade-umami.service` |
+| Port | 3300 |
+| Health | `/api/heartbeat` → `{}` |
+| DB | `postgresql://umami:***@localhost:5432/umami` |
+| Working Dir | `/opt/finance/umami` |
+
+The Umami tracking script is hardcoded in `_app.tsx` with website ID `bb981e0a-b3f6-4e50-98b4-6e66c58c8362`. It tracks pageviews on the production site (vectrade.io) only.
+
 ### Troubleshooting
 
 - **Deploy stuck at stop**: Services have `TimeoutStopSec=15` — if SIGTERM hangs, SIGKILL fires after 15s
 - **Maintenance page stuck on**: Manually set KV `mode` to `off` (see above)
 - **Health check failing**: Check service logs `journalctl -u finance-<svc>@<env> --no-pager -n 50`
+- **Umami down**: `sudo systemctl restart vectrade-umami` — check `/opt/finance/umami/.env` for DB creds
+- **Analytics not tracking**: Verify script in browser DevTools Network tab — look for `script.js` from `analytics.vectrade.io`
 
 ---
 
@@ -202,7 +232,7 @@ handle /v1/vq/developer/* {
 | `ci.yml` | PR/push to main/develop | — | Tests only |
 | `deploy-uat.yml` | CI passes on `develop` | UAT | ✅ Yes |
 | `deploy-prod.yml` | Manual `workflow_dispatch` | Production | ⚠️ Human-gated |
-| `db-backup.yml` | Cron 02:00 UTC daily | Production | ✅ Yes |
+| `db-backup.yml` | Cron 02:00 UTC daily | Production | ✅ Yes (see hygiene below) |
 | `secret-rotation-reminder.yml` | Quarterly | — | Creates issue |
 
 ### NOT Automated (Manual Deploy)
@@ -216,9 +246,34 @@ handle /v1/vq/developer/* {
 ### Production Deploy Checklist
 
 1. Ensure CI passes on target SHA
-2. Go to GitHub Actions → "Deploy to Production" → Run workflow
-3. Enter the git SHA/tag → Run
-4. Workflow: verifies CI gate → SSH → `deploy.sh prod <sha>` → health check → auto-rollback on failure
+2. **Check GH Actions health** — verify no open issues from prior runs (see below)
+3. Go to GitHub Actions → "Deploy to Production" → Run workflow
+4. Enter the git SHA/tag → Run
+5. Workflow: verifies CI gate → SSH → `deploy.sh prod <sha>` → health check → auto-rollback on failure
+6. **Post-deploy** — confirm the Actions run completed green; close any transient issues
+
+### Post-Deploy: Verify GH Actions
+
+After every deployment (UAT or prod), check for GitHub Actions issues:
+
+```bash
+# List recent failed workflow runs
+gh run list --repo VecTrade-io/vectrade-core --status failure --limit 5
+
+# Check for open issues tagged by automation
+gh issue list --repo VecTrade-io/vectrade-core --label "critical" --state open
+
+# Re-run a failed job (if transient)
+gh run rerun <run-id> --failed
+
+# View specific run logs
+gh run view <run-id> --log-failed
+```
+
+If a deploy workflow fails:
+1. Check the run log for SSH timeout or health-check failure
+2. Verify rollback executed successfully
+3. Close the auto-created issue once resolved, or escalate if persistent
 
 ### Secrets Required (GitHub Environments)
 
@@ -237,6 +292,47 @@ handle /v1/vq/developer/* {
 | App dir | `/opt/finance/app` |
 | Env files | `/opt/finance/env/.env.{uat,prod}` |
 - **Worker not intercepting**: Verify routes in `deploy/maintenance/wrangler.toml` and worker is deployed
+
+---
+
+## DB Backup Hygiene (GH Actions)
+
+The `db-backup.yml` workflow runs nightly at 02:00 UTC. It must stay **clean** — stale failures create noise and mask real problems.
+
+### Ensuring Clean Runs
+
+```bash
+# Check recent backup run status
+gh run list --repo VecTrade-io/vectrade-core --workflow db-backup.yml --limit 5
+
+# Close stale backup issues (resolved failures)
+gh issue list --repo VecTrade-io/vectrade-core --label "backup" --state open
+gh issue close <issue-number> --comment "Resolved — backup runs healthy as of $(date +%F)"
+
+# Re-run a failed backup manually
+gh workflow run db-backup.yml --repo VecTrade-io/vectrade-core
+
+# Verify latest backup on server
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  'sudo -u finance bash /opt/finance/app/deploy/scripts/db-verify-backup.sh prod'
+```
+
+### Common Backup Failures & Fixes
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| SSH timeout | VM resource spike | Re-run; if recurring, check `top` on VM |
+| `pg_dump` OOM | Large tables | Increase `--compress` or add `--jobs=2` |
+| Stale issue stays open | Auto-close not triggered | Manually close + verify next nightly passes |
+| Disk full | Old backups not pruned | Run `db-backup.sh --prune` or clean `/opt/finance/backups/` |
+| Permission denied | `finance` user borked | `sudo chown -R finance:finance /opt/finance/backups` |
+
+### Routine Maintenance (weekly)
+
+1. Confirm last 7 nightly runs are green: `gh run list --workflow db-backup.yml --limit 7`
+2. Close any stale `backup` label issues
+3. Verify disk space on backup volume: `ssh ... 'df -h /opt/finance/backups'`
+4. Check WAL archiving isn't lagging (for point-in-time recovery)
 
 ## Constraints
 

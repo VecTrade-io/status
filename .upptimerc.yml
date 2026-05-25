@@ -5,13 +5,30 @@ sites:
   - name: VecTrade
     url: https://vectrade.io
     icon: https://docs.vectrade.io/logo/light.svg
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 5000
   - name: VecTrade UAT
     url: https://uat.vectrade.io
     icon: https://docs.vectrade.io/logo/light.svg
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 5000
   - name: Documentation
     url: https://docs.vectrade.io
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 5000
   - name: Trading API
     url: https://api.vectrade.io/health
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 3000
+  - name: Analytics
+    url: https://analytics.vectrade.io/api/heartbeat
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 3000
 
 status-website:
   cname: status.vectrade.io
@@ -187,7 +204,7 @@ i18n:
   overallUptimeTitle: Overall uptime
   averageResponseTime: "Average response time: $TIMEms"
   averageResponseTimeTitle: Average response
-  up: Operational
+  up: Up
   down: Down
   degraded: Degraded
   liveStatus: Live Status
