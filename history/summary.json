@@ -12,7 +12,7 @@
     "uptimeYear": "100.00%",
     "time": 659,
     "timeDay": 865,
-    "timeWeek": 659,
+    "timeWeek": 665,
     "timeMonth": 659,
     "timeYear": 659,
     "dailyMinutesDown": {}
@@ -23,14 +23,14 @@
     "icon": "https://docs.vectrade.io/logo/light.svg",
     "slug": "vec-trade-uat",
     "status": "down",
-    "uptime": "94.20%",
+    "uptime": "94.91%",
     "uptimeDay": "100.00%",
-    "uptimeWeek": "94.20%",
-    "uptimeMonth": "94.20%",
-    "uptimeYear": "94.20%",
+    "uptimeWeek": "94.91%",
+    "uptimeMonth": "94.91%",
+    "uptimeYear": "94.91%",
     "time": 583,
     "timeDay": 712,
-    "timeWeek": 583,
+    "timeWeek": 572,
     "timeMonth": 583,
     "timeYear": 583,
     "dailyMinutesDown": {
@@ -51,7 +51,7 @@
     "uptimeYear": "100.00%",
     "time": 626,
     "timeDay": 778,
-    "timeWeek": 626,
+    "timeWeek": 630,
     "timeMonth": 626,
     "timeYear": 626,
     "dailyMinutesDown": {}
@@ -72,6 +72,24 @@
     "timeWeek": 437,
     "timeMonth": 437,
     "timeYear": 437,
+    "dailyMinutesDown": {}
+  },
+  {
+    "name": "Analytics",
+    "url": "https://analytics.vectrade.io/api/heartbeat",
+    "icon": "https://icons.duckduckgo.com/ip3/analytics.vectrade.io.ico",
+    "slug": "analytics",
+    "status": "down",
+    "uptime": "100.00%",
+    "uptimeDay": "100.00%",
+    "uptimeWeek": "100.00%",
+    "uptimeMonth": "100.00%",
+    "uptimeYear": "100.00%",
+    "time": 392,
+    "timeDay": 392,
+    "timeWeek": 392,
+    "timeMonth": 392,
+    "timeYear": 392,
     "dailyMinutesDown": {}
   }
 ]
