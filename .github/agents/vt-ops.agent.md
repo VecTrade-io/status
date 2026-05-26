@@ -150,7 +150,17 @@ ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 "sudo systemctl restart vectrade
 | DB | `postgresql://umami:***@localhost:5432/umami` |
 | Working Dir | `/opt/finance/umami` |
 
-The Umami tracking script is hardcoded in `_app.tsx` with website ID `bb981e0a-b3f6-4e50-98b4-6e66c58c8362`. It tracks pageviews on the production site (vectrade.io) only.
+#### Tracked Sites
+
+| Site | Website ID | Config Location |
+|------|-----------|----------------|
+| vectrade.io (prod) | `bb981e0a-b3f6-4e50-98b4-6e66c58c8362` | `/opt/finance/env/.env.prod` → `NEXT_PUBLIC_UMAMI_WEBSITE_ID` |
+| uat.vectrade.io | `82996217-06e9-4d3b-bbe6-8cca892029d7` | `/opt/finance/env/.env.uat` → `NEXT_PUBLIC_UMAMI_WEBSITE_ID` |
+| docs.vectrade.io | `af55f298-b98d-4e1f-953f-0a52a2d48478` | `vectrade-docs/mint.json` → `integrations.umami` |
+| status.vectrade.io | `6521caa6-d9f5-4845-ad54-342043e0d502` | `status/.upptimerc.yml` → `js` block |
+| mcp.vectrade.io | `b01aa9c4-1aa5-4e02-9203-6fec2f7d6f0e` | Not tracked (API-only, no browser page) |
+
+The tracking script is loaded conditionally in `_app.tsx` — only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` env var is set. No hardcoded IDs in source code.
 
 ### Troubleshooting
 
@@ -224,6 +234,37 @@ handle /v1/vq/developer/* {
 ---
 
 ## CI/CD Pipeline Summary
+
+### Quality Gate Architecture
+
+The CI pipeline uses a strict "all-must-pass" gate (`CI Gate` job) that checks:
+- **Lint** + **Lint Frontend** — code style
+- **Test** — pytest (unit + integration, SQLite mode)
+- **Build Verify (Python)** + **Build Verify (Site)** — package/build integrity
+- **E2E Smoke** — Playwright browser tests (frontend only, no backend required)
+- **Security Scan** — pip-audit + npm audit
+
+If ANY job fails, the gate fails and merges are blocked.
+
+### Common Failure Patterns & Prevention
+
+| Pattern | Root Cause | Prevention |
+|---------|-----------|------------|
+| Copilot/AI tests fail after tier changes | Business logic change (e.g. free tier disabled) but tests not updated | Always update test assertions when modifying `trading/config.py` tier settings |
+| `pg_dump: permission denied` in backup | New table created without granting SELECT to `trading_app` | Add `GRANT SELECT ON ALL TABLES IN SCHEMA public TO trading_app` after migrations |
+| Node.js action deprecation warnings | Using old action versions | Keep actions pinned to latest major versions (currently v6/v7+) |
+| E2E proxy ECONNREFUSED | Expected — E2E runs frontend-only, backend not started | Non-blocking; smoke tests handle gracefully |
+| Dependabot PR fails CI | Dependency update breaks tests | Review Dependabot PRs; don't auto-merge |
+
+### Post-Migration Checklist (DB Schema Changes)
+
+After adding/altering tables, ensure:
+
+```bash
+# On the VM — grant backup access to new tables
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo -u postgres psql -d trading -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO trading_app;'"
+```
 
 ### Fully Automated (CI → CD)
 
