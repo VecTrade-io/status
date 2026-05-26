@@ -24,11 +24,6 @@ sites:
     expectedStatusCodes:
       - 200
     maxResponseTime: 3000
-  - name: Analytics
-    url: https://analytics.vectrade.io/api/heartbeat
-    expectedStatusCodes:
-      - 200
-    maxResponseTime: 3000
 
 status-website:
   cname: status.vectrade.io
