@@ -46,14 +46,6 @@ status-website:
     - title: GitHub
       href: https://github.com/VecTrade-io
   js: |
-    // Umami analytics
-    (function() {
-      var s = document.createElement('script');
-      s.defer = true;
-      s.src = 'https://analytics.vectrade.io/script.js';
-      s.dataset.websiteId = '6521caa6-d9f5-4845-ad54-342043e0d502';
-      document.head.appendChild(s);
-    })();
     // Make logo link to vectrade.io instead of status page root
     document.addEventListener('DOMContentLoaded', function() {
       var logo = document.querySelector('nav a[href="/"]');
@@ -198,10 +190,10 @@ workflowSchedule:
   summary: "0 0 * * *"
 
 commitMessages:
-  statusChange: "$EMOJI $SITE_NAME is $STATUS ($RESPONSE_CODE in $RESPONSE_TIME ms)"
-  commitPrefixStatus: "U+1F504"
-  commitPrefixStatusUp: "U+2705"
-  commitPrefixStatusDown: "U+274C"
+  statusChange: "$PREFIX $SITE_NAME is $STATUS ($RESPONSE_CODE in $RESPONSE_TIME ms)"
+  commitPrefixStatus: "🔄"
+  commitPrefixStatusUp: "🟩"
+  commitPrefixStatusDown: "🟥"
 
 i18n:
   activeIncidents: Active Incidents
