@@ -31,6 +31,7 @@ status-website:
   favicon: https://docs.vectrade.io/logo/light.svg
   name: VecTrade Status
   theme: dark
+  robotsText: "User-agent: *\nDisallow: /"
   navbar:
     - title: Status
       href: /
