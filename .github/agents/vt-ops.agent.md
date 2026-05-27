@@ -48,6 +48,23 @@ sites:
       - 200
 ```
 
+## Environment Architecture (Fully Isolated)
+
+| Property | Production | UAT |
+|----------|-----------|-----|
+| App directory | `/opt/finance/app-prod` | `/opt/finance/app-uat` |
+| Env file | `/opt/finance/env/.env.prod` | `/opt/finance/env/.env.uat` |
+| Python venv | `app-prod/.venv` | `app-uat/.venv` |
+| Ports (API/Collector/Trading/Site) | 8000/8001/8002/3100 | 9000/9001/9002/9100 |
+| Database | `finance_prod` / `trading` | `finance_uat` / `trading_uat` |
+| Redis | db0 | db1 |
+| ENVIRONMENT | `production` | `uat` |
+| CORS origins | `vectrade.io` | `uat.vectrade.io` |
+| Secrets | Unique per env | Unique per env |
+| Systemd services | `finance-*@prod` | `finance-*@uat` (drop-in overrides) |
+
+Both environments run on the same OCI VM but are fully isolated: separate code directories, venvs, databases, secrets, and ports.
+
 ## Deployments & Maintenance Mode
 
 Deploys are handled by `vectrade-core/deploy/deploy.sh`. It uses a **two-phase strategy** to minimize downtime:
@@ -103,19 +120,31 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/a2744e24e619da1f53002
 
 ### Running a Deploy
 
-Deploys are **fully automated** including maintenance mode. Just run:
+Deploys are **fully automated** including maintenance mode. The deploy script uses `APP_DIR=/opt/finance/app-${ENV}`, so each environment deploys to its own isolated directory.
 
 ```bash
 # From local machine (gh auth provides the token)
+# Deploy to UAT
 ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
-  "sudo -u finance DEPLOY_TOKEN=$(gh auth token) bash /opt/finance/app/deploy/deploy.sh <env> <sha> [--skip-backup]"
+  "sudo -u finance DEPLOY_TOKEN=$(gh auth token) bash /opt/finance/app-uat/deploy/deploy.sh uat <sha> --skip-backup"
+
+# Deploy to Production
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo -u finance DEPLOY_TOKEN=$(gh auth token) bash /opt/finance/app-prod/deploy/deploy.sh prod <sha>"
 ```
 
 - **env**: `uat` or `prod`
 - **sha**: short git SHA from vectrade-core main branch
 - **--skip-backup**: skip DB backup (faster, for non-critical deploys)
+- Deploy script resolves: `APP_DIR=/opt/finance/app-${ENV}`, `STAGING_DIR=/opt/finance/staging-${ENV}`
 
 The script will automatically: show pending banner → wait 15s → enable maintenance page → stop/swap/start → disable maintenance page. No manual steps needed.
+
+### Deploy Order
+
+Always deploy **UAT first**, verify, then prod:
+1. `deploy.sh uat <sha> --skip-backup` → verify https://uat.vectrade.io
+2. `deploy.sh prod <sha>` → verify https://vectrade.io
 
 ### Measured Performance (UAT, ARM64 4-core)
 
@@ -183,7 +212,7 @@ The auth gateway (`vectrade-auth`) is **NOT** part of the main `deploy.sh` flow.
 | Service name | `vectrade-auth` |
 | Port | 8099 |
 | Source | `vectrade-core/deploy/auth-gateway/main.py` |
-| Production path | `/opt/finance/app/auth/main.py` |
+| Production path | `/opt/finance/app-prod/auth/main.py` |
 | Purpose | API key validation (forward_auth) + developer self-service endpoints |
 
 ### Deploy Auth Gateway
@@ -195,7 +224,7 @@ scp -i ~/.oci/vm_ssh_key \
   ubuntu@145.241.243.140:/tmp/auth_main.py
 
 ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
-  'sudo cp /tmp/auth_main.py /opt/finance/app/auth/main.py && sudo systemctl restart vectrade-auth'
+  'sudo cp /tmp/auth_main.py /opt/finance/app-prod/auth/main.py && sudo systemctl restart vectrade-auth'
 ```
 
 ### Verify Auth Gateway
@@ -330,7 +359,8 @@ If a deploy workflow fails:
 | Host | `145.241.243.140` |
 | SSH Key | `~/.oci/vm_ssh_key` |
 | User | `ubuntu` (sudo) / `finance` (app owner) |
-| App dir | `/opt/finance/app` |
+| App dir (prod) | `/opt/finance/app-prod` |
+| App dir (uat) | `/opt/finance/app-uat` |
 | Env files | `/opt/finance/env/.env.{uat,prod}` |
 - **Worker not intercepting**: Verify routes in `deploy/maintenance/wrangler.toml` and worker is deployed
 
