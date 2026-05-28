@@ -88,26 +88,33 @@ The deploy script automatically:
 1. Shows "pending" banner → 15s warning to active users
 2. Switches to "on" (branded 503 page) at Phase 2 start
 3. Switches to "off" when all services are healthy
+4. **EXIT trap safety net** (commit `8b6e58b`): if the script crashes or aborts at any point, a `trap EXIT` guarantees `mode_${ENV}` is set to `off` — maintenance can no longer get stuck
 
 ### Manual Maintenance Toggle
 
-If env vars aren't set (or for ad-hoc maintenance), toggle manually:
+If env vars aren't set (or for ad-hoc maintenance), toggle manually.
+
+**IMPORTANT**: The KV key is environment-scoped: `mode_prod` or `mode_uat` (NOT just `mode`).
 
 ```bash
 # From local machine (requires wrangler auth)
 cd vectrade-core/deploy/maintenance
 
-# Enable
-wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode" "on"
+# Enable (prod)
+wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode_prod" "on"
 
-# Disable
-wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode" "off"
+# Disable (prod)
+wrangler kv key put --namespace-id="0301bea899144e7182a0457196e24da5" --remote "mode_prod" "off"
 
 # Or via REST API (from anywhere with a CF token)
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/a2744e24e619da1f53002161ee74905c/storage/kv/namespaces/0301bea899144e7182a0457196e24da5/values/mode" \
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/a2744e24e619da1f53002161ee74905c/storage/kv/namespaces/0301bea899144e7182a0457196e24da5/values/mode_prod" \
   -H "Authorization: Bearer $CF_API_TOKEN" \
   -H "Content-Type: text/plain" \
   --data "on"   # or "off" or "pending"
+
+# Or from the server (uses env vars):
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  'sudo -u finance bash -c "source /opt/finance/env/.env.prod && curl -sf -X PUT \"https://api.cloudflare.com/client/v4/accounts/\${CF_ACCOUNT_ID}/storage/kv/namespaces/\${CF_MAINTENANCE_KV_ID}/values/mode_prod\" -H \"Authorization: Bearer \${CF_API_TOKEN}\" -H \"Content-Type: text/plain\" --data \"off\""'
 ```
 
 ### Maintenance Mode States
@@ -194,7 +201,7 @@ The tracking script is loaded conditionally in `_app.tsx` — only when `NEXT_PU
 ### Troubleshooting
 
 - **Deploy stuck at stop**: Services have `TimeoutStopSec=15` — if SIGTERM hangs, SIGKILL fires after 15s
-- **Maintenance page stuck on**: Manually set KV `mode` to `off` (see above)
+- **Maintenance page stuck on**: Manually set KV `mode_prod` (or `mode_uat`) to `off` (see Manual Maintenance Toggle above). Note: as of commit `8b6e58b`, an EXIT trap auto-disables maintenance on any script failure — this should no longer occur.
 - **Health check failing**: Check service logs `journalctl -u finance-<svc>@<env> --no-pager -n 50`
 - **Umami down**: `sudo systemctl restart vectrade-umami` — check `/opt/finance/umami/.env` for DB creds
 - **Analytics not tracking**: Verify script in browser DevTools Network tab — look for `script.js` from `analytics.vectrade.io`
@@ -404,6 +411,45 @@ ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
 2. Close any stale `backup` label issues
 3. Verify disk space on backup volume: `ssh ... 'df -h /opt/finance/backups'`
 4. Check WAL archiving isn't lagging (for point-in-time recovery)
+
+## OCI Email Delivery
+
+Outbound email for all agent addresses (`@vectrade.io`) is sent via OCI Email Delivery.
+
+| Property | Value |
+|----------|-------|
+| Region | UK South (London) |
+| Email Domain | `vectrade.io` |
+| OCID | `ocid1.emaildomain.oc1.uk-london-1.amaaaaaa2z522haa7rcvym76yrdfjmhay2vqgjp7jpsrwfywa4bybpwpilxa` |
+| Created | 2026-05-28 |
+| SPF | ✅ Configured |
+| DKIM | ⏳ Pending (needs CNAME in Cloudflare) |
+| SMTP Host | `smtp.email.uk-london-1.oci.oraclecloud.com` |
+| SMTP Port | 587 (STARTTLS) |
+| Free Tier | 100 emails/day |
+
+### Approved Senders (to add)
+
+- `james.whitfield@vectrade.io` (vector/CEO)
+- `axon@vectrade.io` (axon/CTO)
+- `oliver.hartley@vectrade.io` (relay/DevRel)
+- `sophie.pearson@vectrade.io` (prism/Design)
+- `nadia.okafor@vectrade.io` (quant/Research)
+- `support@vectrade.io` (general)
+
+### SMTP Credentials
+
+Generate at: **OCI Console → Profile (top-right) → My profile → Resources → SMTP Credentials**
+
+| Property | Value |
+|----------|-------|
+| Username | `ocid1.user.oc1..aaaaaaaatp6gau3nfvvi2x3uoftqzcwgkgyhsphbahhpq7hh4zzn523m6ykq@ocid1.tenancy.oc1..aaaaaaaakxgpugwzyxjxlg5ufgqbq6y44yr4ci2rgeiquzbxio4qzuddhasq.um.com` |
+| Password | Stored in `.env` files only (never commit) |
+| Region | `uk-london-1` |
+
+Stored in: `/opt/finance/env/.env.agent` (on VM) or `vectrade-agent/.env` (local dev)
+
+---
 
 ## Constraints
 
