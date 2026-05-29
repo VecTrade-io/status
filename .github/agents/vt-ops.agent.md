@@ -451,6 +451,107 @@ Stored in: `/opt/finance/env/.env.agent` (on VM) or `vectrade-agent/.env` (local
 
 ---
 
+## X (Twitter) API — OAuth 1.0a (Posting)
+
+Used by `vectrade-agent` to post tweets as `@vectrade`. Free tier: 50 posts/day.
+
+| Property | Value |
+|----------|-------|
+| App Name | VecTrade |
+| App ID | 32931054 |
+| Account | `@vectrade` |
+| Plan | Pay Per Use (Free) |
+| Permissions | Read and Write |
+| OAuth 2.0 Client ID | `cWZuMjA3eGc4bnNKdUNpZlVDR1o6MTpjaQ` (used for login) |
+
+### OAuth 1.0a Credentials (for posting)
+
+| Key | Value |
+|-----|-------|
+| Consumer Key (API Key) | `0gG7AFuYgXe878pgupM5iPTBE` |
+| Consumer Secret (API Key Secret) | `DRQbKRlDS2jh3lrgnvLQmwRWesy4Kb8qZ5EKyjKhoLZyMloIwi` |
+| Access Token | `2055016077495558144-RkMBKWjzcU6AOQhNwGvkENN7ZV2Tid` |
+| Access Token Secret | `MRUxOcdq3eii665l25OaDtGIw8jUhWVAJ9RsnN9fVsuCT` |
+
+### Env Vars (vectrade-agent)
+
+```bash
+AGENT_X_CONSUMER_KEY=0gG7AFuYgXe878pgupM5iPTBE
+AGENT_X_CONSUMER_SECRET=DRQbKRlDS2jh3lrgnvLQmwRWesy4Kb8qZ5EKyjKhoLZyMloIwi
+AGENT_X_ACCESS_TOKEN=2055016077495558144-RkMBKWjzcU6AOQhNwGvkENN7ZV2Tid
+AGENT_X_ACCESS_TOKEN_SECRET=MRUxOcdq3eii665l25OaDtGIw8jUhWVAJ9RsnN9fVsuCT
+```
+
+Stored in: `/opt/finance/env/.env.agent` (on VM) or `vectrade-agent/.env` (local dev)
+
+### Setup via Admin API
+
+```bash
+curl -X POST http://localhost:8003/admin/agents/shared/x/setup \
+  -H "Authorization: Bearer dev-admin-token-local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "consumer_key": "0gG7AFuYgXe878pgupM5iPTBE",
+    "consumer_secret": "DRQbKRlDS2jh3lrgnvLQmwRWesy4Kb8qZ5EKyjKhoLZyMloIwi",
+    "access_token": "2055016077495558144-RkMBKWjzcU6AOQhNwGvkENN7ZV2Tid",
+    "access_token_secret": "MRUxOcdq3eii665l25OaDtGIw8jUhWVAJ9RsnN9fVsuCT"
+  }'
+```
+
+---
+
+## Agent UAT → Production Promotion Gate
+
+Before promoting `vectrade-agent` from UAT to production, ALL items below must pass. Do not skip any.
+
+### Pre-requisites (completed 2026-05-29)
+
+- [x] Agent health endpoint responding (`/health`)
+- [x] 6 agents loaded (vector, axon, prism, relay, quant, mirror)
+- [x] LLM generation working (LiteLLM → Azure GPT-5-mini-EU)
+- [x] Email inbound webhook → agent processing → reply via SMTP
+- [x] Email escalation to human review queue (partnership/sensitive triggers)
+- [x] Browser extension connectivity (CORS, admin token)
+- [x] Scheduler started, 15 missions loaded
+- [x] Pricing URL fix deployed (`/products` not `/pricing`)
+
+### Gate Checklist (verify 2026-05-30)
+
+| # | Check | How to verify | Status |
+|---|-------|---------------|--------|
+| 1 | Cron missions fire cleanly | Check logs after 09:00 UTC: `journalctl -u vectrade-agent@uat --since "06:00" \| grep "mission_"` — expect `axon-daily-health`, `quant-daily-analytics`, `prism-content-calendar` to show execution + completion | ⬜ |
+| 2 | DKIM configured | Add OCI DKIM CNAME in Cloudflare → verify propagation: `dig CNAME <selector>._domainkey.vectrade.io` | ⬜ |
+| 3 | Email deliverability | Send test email to `sophie.pearson@vectrade.io` → confirm reply lands in inbox (not spam), check SPF/DKIM pass in headers | ⬜ |
+| 4 | Pricing URL in replies | Verify the test reply above contains `https://vectrade.io/products` (not `/pricing`) | ⬜ |
+| 5 | X/Twitter posting | Generate a social draft via admin API → approve → confirm tweet appears on `@vectrade` | ⬜ |
+| 6 | GitHub webhook (`ci_failure`) | Trigger deliberate test workflow failure OR verify webhook subscription is active: `gh api repos/VecTrade-io/vectrade-core/hooks` | ⬜ |
+| 7 | No error spew in logs | `journalctl -u vectrade-agent@uat --since "06:00" -p err` — should be empty or only transient | ⬜ |
+
+### Promotion Steps (once gate passes)
+
+1. Create production env file: `/opt/finance/env/.env.agent-prod` (copy from UAT, update DB/Redis/auth values)
+2. Create production database: `vectrade_agent_prod` with role `agent_app_prod`
+3. Deploy agent to prod directory: `/opt/finance/app-prod/agent/` or as separate systemd unit `vectrade-agent@prod`
+4. Add Caddy route for `api.vectrade.io/api/v1/agent/*` (same pattern as UAT)
+5. Configure Cloudflare Email Worker to route prod emails (separate worker or env toggle)
+6. Add status monitor: edit `.upptimerc.yml` to add agent health endpoint
+7. Verify end-to-end on production domain
+
+### Rollback
+
+If production agent misbehaves:
+```bash
+# Stop agent
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 'sudo systemctl stop vectrade-agent@prod'
+
+# Remove Caddy route (comment out agent block) + reload
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 'sudo caddy reload --config /etc/caddy/Caddyfile'
+
+# Email routing: revert CF worker to drop/bounce agent-addressed emails
+```
+
+---
+
 ## Constraints
 
 - DO NOT manually edit files in `history/`, `api/`, or `graphs/` (auto-generated)
