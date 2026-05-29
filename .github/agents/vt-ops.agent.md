@@ -54,14 +54,18 @@ sites:
 |----------|-----------|-----|
 | App directory | `/opt/finance/app-prod` | `/opt/finance/app-uat` |
 | Env file | `/opt/finance/env/.env.prod` | `/opt/finance/env/.env.uat` |
+| Agent env file | `/opt/finance/env/.env.agent-prod` | `/opt/finance/env/.env.agent` |
 | Python venv | `app-prod/.venv` | `app-uat/.venv` |
 | Ports (API/Collector/Trading/Site) | 8000/8001/8002/3100 | 9000/9001/9002/9100 |
+| Port (Agent) | 8003 (planned) | 8003 |
 | Database | `finance_prod` / `trading` | `finance_uat` / `trading_uat` |
+| Agent database | `vectrade_agent_prod` (planned) | `vectrade_agent` |
 | Redis | db0 | db1 |
 | ENVIRONMENT | `production` | `uat` |
 | CORS origins | `vectrade.io` | `uat.vectrade.io` |
 | Secrets | Unique per env | Unique per env |
 | Systemd services | `finance-*@prod` | `finance-*@uat` (drop-in overrides) |
+| Agent systemd | `vectrade-agent@prod` (planned) | `vectrade-agent@uat` |
 
 Both environments run on the same OCI VM but are fully isolated: separate code directories, venvs, databases, secrets, and ports.
 
@@ -411,6 +415,81 @@ ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
 2. Close any stale `backup` label issues
 3. Verify disk space on backup volume: `ssh ... 'df -h /opt/finance/backups'`
 4. Check WAL archiving isn't lagging (for point-in-time recovery)
+
+---
+
+## Settlement System (Trading Service)
+
+The trading service runs a daily settlement that computes per-user equity snapshots, P&L, and fees. The leaderboard derives TWR (Time-Weighted Return) from these records.
+
+| Property | Value |
+|----------|-------|
+| Config | `SETTLEMENT_HOUR_UTC=21` (9 PM UTC) |
+| Trigger | Price-rule scheduler `_maybe_run_settlement()` — checked every 30s cycle |
+| Table | `daily_settlements` |
+| Leaderboard refresh | Every 5 min (separate scheduler) |
+| TWR calculation | Requires ≥2 settlement days to produce non-zero values |
+
+### Verify Settlement Ran
+
+```bash
+# Check logs
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo journalctl -u finance-trading@prod --since today --no-pager | grep 'Daily settlement completed'"
+
+# Check DB
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo -u postgres psql -d trading -c \"SELECT settlement_date, COUNT(*) as users FROM daily_settlements GROUP BY settlement_date ORDER BY settlement_date;\""
+```
+
+### Backfill Missing Settlements
+
+Use `systemd-run` to execute with the same environment as the service:
+
+```bash
+# 1. Upload backfill script
+cat << 'SCRIPT' | ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 "cat > /tmp/backfill_settlement.py"
+import asyncio
+import sys
+sys.path.insert(0, "/opt/finance/app-prod")
+from datetime import date
+from trading.database import async_session_factory
+from trading.trade.settlement import run_daily_settlement
+
+async def backfill():
+    async with async_session_factory() as db:
+        result = await run_daily_settlement(db, date(2026, 5, 28))  # <-- change date
+        await db.commit()
+        print("Backfilled:", len(result), "settlements")
+
+asyncio.run(backfill())
+SCRIPT
+
+# 2. Run with systemd-run (inherits EnvironmentFile like the real service)
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo systemd-run --uid=finance --gid=finance \
+    --working-directory=/opt/finance/app-prod \
+    --setenv=HOME=/opt/finance \
+    --property=EnvironmentFile=/opt/finance/env/.env.prod \
+    /opt/finance/app-prod/.venv/bin/python3 /tmp/backfill_settlement.py"
+
+# 3. Check result
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  "sudo journalctl -u 'run-r*.service' --since '1 min ago' --no-pager"
+
+# 4. Cleanup
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 "sudo rm /tmp/backfill_settlement.py"
+```
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Leaderboard all 0% | No settlements or only 1 day of data | Verify `daily_settlements` table has ≥2 dates; backfill if missing |
+| Settlement not running | Deadlock (fixed cc40426) or service crashed | Check `journalctl -u finance-trading@prod -p err`; restart if needed |
+| Settlement runs but 0 users | All users inactive/suspended | Check `SELECT count(*) FROM users WHERE status='ACTIVE'` |
+
+---
 
 ## OCI Email Delivery
 
