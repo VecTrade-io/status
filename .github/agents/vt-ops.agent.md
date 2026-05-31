@@ -326,6 +326,9 @@ ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
 
 ### Production Deploy Checklist
 
+0. **Check GitHub Actions billing/quota health first**
+  - If runs show: `The job was not started because recent account payments have failed or your spending limit needs to be increased`, treat as a **hard release blocker** for CI/CD governance.
+  - Resolve in GitHub Billing before relying on CI gate outcomes.
 1. Ensure CI passes on target SHA
 2. **Check GH Actions health** — verify no open issues from prior runs (see below)
 3. Go to GitHub Actions → "Deploy to Production" → Run workflow
@@ -355,6 +358,13 @@ If a deploy workflow fails:
 1. Check the run log for SSH timeout or health-check failure
 2. Verify rollback executed successfully
 3. Close the auto-created issue once resolved, or escalate if persistent
+
+If workflows are blocked by billing/quota:
+1. Treat CI signal as unavailable (governance risk)
+2. Run server-side fallback checks manually (service health + endpoint checks + E2E validation)
+3. Trigger DB backup directly on VM before prod deploy:
+  - `ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 "sudo -u finance bash /opt/finance/app-prod/deploy/scripts/db-backup.sh prod"`
+4. Document temporary waiver and remediation owner in release notes/incident log
 
 ### Secrets Required (GitHub Environments)
 
@@ -397,6 +407,10 @@ gh workflow run db-backup.yml --repo VecTrade-io/vectrade-core
 # Verify latest backup on server
 ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
   'sudo -u finance bash /opt/finance/app/deploy/scripts/db-verify-backup.sh prod'
+
+# Fallback when GitHub Actions cannot start (billing/quota outage)
+ssh -i ~/.oci/vm_ssh_key ubuntu@145.241.243.140 \
+  'sudo -u finance bash /opt/finance/app-prod/deploy/scripts/db-backup.sh prod && sudo -u finance bash /opt/finance/app-prod/deploy/scripts/db-verify-backup.sh prod'
 ```
 
 ### Common Backup Failures & Fixes
