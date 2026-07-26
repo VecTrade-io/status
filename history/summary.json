@@ -64,17 +64,19 @@
     "url": "https://api.vectrade.io/health",
     "icon": "https://icons.duckduckgo.com/ip3/api.vectrade.io.ico",
     "slug": "trading-api",
-    "status": "degraded",
+    "status": "up",
     "uptime": "100.00%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.98%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
     "time": 602,
-    "timeDay": 3172,
-    "timeWeek": 1296,
-    "timeMonth": 742,
+    "timeDay": 2316,
+    "timeWeek": 1219,
+    "timeMonth": 738,
     "timeYear": 602,
-    "dailyMinutesDown": {}
+    "dailyMinutesDown": {
+      "2026-07-26": 0
+    }
   }
 ]
