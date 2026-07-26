@@ -1,7 +1,7 @@
 url: https://api.vectrade.io/health
-status: degraded
+status: up
 code: 200
-responseTime: 5793
-lastUpdated: 2026-07-26T19:40:13.634Z
+responseTime: 605
+lastUpdated: 2026-07-26T20:35:55.952Z
 startTime: 2026-05-19T09:55:35.549Z
 generator: Upptime <https://github.com/upptime/upptime>
