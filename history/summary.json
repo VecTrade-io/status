@@ -10,11 +10,11 @@
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "99.87%",
-    "time": 726,
-    "timeDay": 676,
-    "timeWeek": 819,
-    "timeMonth": 751,
-    "timeYear": 726,
+    "time": 730,
+    "timeDay": 972,
+    "timeWeek": 839,
+    "timeMonth": 758,
+    "timeYear": 730,
     "dailyMinutesDown": {
       "2026-05-27": 130
     }
@@ -30,11 +30,11 @@
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "99.39%",
-    "time": 749,
-    "timeDay": 601,
+    "time": 751,
+    "timeDay": 929,
     "timeWeek": 815,
     "timeMonth": 773,
-    "timeYear": 749,
+    "timeYear": 751,
     "dailyMinutesDown": {
       "2026-05-27": 130,
       "2026-05-21": 415,
@@ -52,11 +52,11 @@
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 574,
-    "timeDay": 772,
-    "timeWeek": 594,
-    "timeMonth": 608,
-    "timeYear": 574,
+    "time": 577,
+    "timeDay": 806,
+    "timeWeek": 593,
+    "timeMonth": 612,
+    "timeYear": 577,
     "dailyMinutesDown": {}
   },
   {
@@ -66,17 +66,15 @@
     "slug": "trading-api",
     "status": "up",
     "uptime": "100.00%",
-    "uptimeDay": "99.98%",
+    "uptimeDay": "100.00%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 602,
-    "timeDay": 2316,
-    "timeWeek": 1219,
-    "timeMonth": 738,
-    "timeYear": 602,
-    "dailyMinutesDown": {
-      "2026-07-26": 0
-    }
+    "time": 604,
+    "timeDay": 2377,
+    "timeWeek": 1230,
+    "timeMonth": 742,
+    "timeYear": 604,
+    "dailyMinutesDown": {}
   }
 ]
