@@ -5,15 +5,15 @@
     "icon": "https://docs.vectrade.io/logo/light.svg",
     "slug": "vec-trade",
     "status": "up",
-    "uptime": "99.92%",
+    "uptime": "99.93%",
     "uptimeDay": "100.00%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
-    "uptimeYear": "99.92%",
+    "uptimeYear": "99.93%",
     "time": 747,
     "timeDay": 0,
     "timeWeek": 0,
-    "timeMonth": 765,
+    "timeMonth": 784,
     "timeYear": 747,
     "dailyMinutesDown": {
       "2026-05-27": 130
@@ -33,7 +33,7 @@
     "time": 775,
     "timeDay": 0,
     "timeWeek": 0,
-    "timeMonth": 822,
+    "timeMonth": 838,
     "timeYear": 775,
     "dailyMinutesDown": {
       "2026-05-27": 130,
@@ -55,7 +55,7 @@
     "time": 579,
     "timeDay": 0,
     "timeWeek": 0,
-    "timeMonth": 590,
+    "timeMonth": 614,
     "timeYear": 579,
     "dailyMinutesDown": {}
   },
@@ -73,7 +73,7 @@
     "time": 607,
     "timeDay": 0,
     "timeWeek": 0,
-    "timeMonth": 608,
+    "timeMonth": 617,
     "timeYear": 607,
     "dailyMinutesDown": {}
   }
