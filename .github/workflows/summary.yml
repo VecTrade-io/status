@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: main
           token: ${{ secrets.GH_PAT || github.token }}
       - name: Update summary in README
         uses: upptime/uptime-monitor@v1.41.5
